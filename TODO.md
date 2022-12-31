@@ -1,0 +1,6 @@
+- [x] Basic Register route for creating Admins, User and Guides.
+- [ ] Async Handler to wrap our Business logic.
+- [ ] Custom Errorhandler Middleware.
+- [ ] User Login routes.
+- [ ] Auth Middleware to check for token and protect routes. 
+- [ ] Routes for Admin to create productKey.
