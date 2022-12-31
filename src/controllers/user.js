@@ -1,5 +1,7 @@
 const ErrorResponse = require('../utils/errorResponse');
 const User = require('../models/User');
+const Logger = require('../utils/Logger');
+const jwt = require('jsonwebtoken');
 
 exports.register = async function (req, res, next) {
     let guideRoles = null;
@@ -9,7 +11,12 @@ exports.register = async function (req, res, next) {
     const productKey = req.body.productKey;
     if (productKey) {
         const decoded = jwt.verify(productKey, process.env.JWT_SECRET);
+        if (decoded.email != email) {
+            Logger.logToDb("email_not_matched", `${email} ${decoded.email}[Provided by Admin]`, "")
+            return next(new ErrorResponse("Email does not match", 400));
+        }
         guideRoles = decoded.role;
+
     }
     // Create user
     const user = await User.create({
@@ -23,6 +30,8 @@ exports.register = async function (req, res, next) {
         await user.save();
         const token = user.getSignedJwtToken();
         res.status(201).json({ message: 'User created successfully', token });
+        Logger.logToDb("user_created", `${name} ${email}`, user.id);
+
     } catch (err) {
         next(new ErrorResponse(err.message, 400))
     }

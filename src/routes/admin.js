@@ -5,10 +5,8 @@ const router = express.Router();
 const adminController = require('../controllers/admin');
 
 router.use(protect);
-
 // check if user is admin
 router.use(authorize('admin'));
-
 
 router.post('/productKey', asyncHandler(adminController.getProductkey))
 

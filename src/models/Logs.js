@@ -7,7 +7,6 @@ const LogSchema = new mongoose.Schema({
     },
     uid: {
         type: String,
-        required: true
     },
     event: {
         type: String,
