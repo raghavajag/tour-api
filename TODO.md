@@ -2,5 +2,8 @@
 - [x] Async Handler to wrap our Business logic.
 - [x] Custom Errorhandler Middleware.
 - [x] User Login routes.
-- [ ] Auth Middleware to check for token and protect routes. 
-- [ ] Routes for Admin to create productKey.
+- [x] Auth Middleware to check for token and protect routes. 
+- [x] Routes for Admin to create productKey.
+- [ ] Verify Email
+- [ ] Reset Password
+- [ ] Use Access and Refresh Tokens
