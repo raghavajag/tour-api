@@ -6,4 +6,5 @@
 - [x] Routes for Admin to create productKey.
 - [x] Verify Email
 - [x] Reset Password
-- [ ] Use Access and Refresh Tokens
+- [x] Use Access and Refresh Tokens
+- [x] Logout Feature and Blacklisting previous Access Tokens
