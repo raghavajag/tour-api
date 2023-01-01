@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const UserSchema = new mongoose.Schema({
     name: {
@@ -29,11 +30,11 @@ const UserSchema = new mongoose.Schema({
     },
     // resetPasswordToken: String,
     // resetPasswordExpire: Date,
-    // confirmEmailToken: String,
-    // isEmailVerified: {
-    //     type: Boolean,
-    //     default: false,
-    // },
+    confirmEmailToken: String,
+    isEmailVerified: {
+        type: Boolean,
+        default: false,
+    },
     createdAt: {
         type: Date,
         default: Date.now,
@@ -61,4 +62,20 @@ UserSchema.methods.getSignedJwtToken = function () {
 UserSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
+
+// Generate email confirm token
+UserSchema.methods.generateEmailConfirmToken = function (next) {
+    // email confirmation token
+    const confirmationToken = crypto.randomBytes(20).toString('hex');
+
+    this.confirmEmailToken = crypto
+        .createHash('sha256')
+        .update(confirmationToken)
+        .digest('hex');
+
+    const confirmTokenExtend = crypto.randomBytes(100).toString('hex');
+    const confirmTokenCombined = `${confirmationToken}.${confirmTokenExtend}`;
+    return confirmTokenCombined;
+};
+
 module.exports = mongoose.model('User', UserSchema);

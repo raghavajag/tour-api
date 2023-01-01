@@ -8,5 +8,7 @@ router.post('/register', asyncHandler(userController.register));
 
 router.post('/login', asyncHandler(userController.login));
 
+router.get('/confirmemail', asyncHandler(userController.confirmEmail));
+
 
 module.exports = router;

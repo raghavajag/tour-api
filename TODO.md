@@ -4,6 +4,6 @@
 - [x] User Login routes.
 - [x] Auth Middleware to check for token and protect routes. 
 - [x] Routes for Admin to create productKey.
-- [ ] Verify Email
+- [x] Verify Email
 - [ ] Reset Password
 - [ ] Use Access and Refresh Tokens
