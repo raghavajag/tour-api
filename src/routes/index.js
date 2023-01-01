@@ -2,7 +2,7 @@ const APP_START_TIME = Date.now();
 const asyncHandler = require('../middleware/async');
 const auth = require('./auth');
 const admin = require('./admin');
-const ErrorResponse = require('../utils/errorResponse');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 const API_ROUTE_MAP = {
     "/admin": admin,

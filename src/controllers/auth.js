@@ -1,4 +1,4 @@
-const ErrorResponse = require('../utils/errorResponse');
+const ErrorResponse = require('../utils/ErrorResponse');
 const User = require('../models/User');
 const Logger = require('../utils/Logger');
 const jwt = require('jsonwebtoken');
