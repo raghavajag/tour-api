@@ -6,10 +6,7 @@ const sendEmail = require('../utils/sendEmail');
 const crypto = require('crypto');
 const redisClient = require('../utils/connectRedis');
 
-exports.me = async function (req, res, next) {
-    const user = await User.findById(req.user.id)
-    return res.json(user);
-}
+
 exports.register = async function (req, res, next) {
     let guideRoles = null;
     const { name, email, password, role } = req.body;
@@ -17,7 +14,7 @@ exports.register = async function (req, res, next) {
     // check if the user provides a product key
     const productKey = req.body.productKey;
     if (productKey) {
-        const decoded = jwt.verify(productKey, process.env.JWT_SECRET);
+        const decoded = jwt.verify(productKey, process.env.JWT_ACCESS_SECRET);
         if (decoded.email != email) {
             Logger.logToDb("email_not_matched", `${email} ${decoded.email}[Provided by Admin]`, "")
             return next(new ErrorResponse("Email does not match", 400));
@@ -129,11 +126,14 @@ exports.confirmEmail = async function (req, res, next) {
     Logger.logToDb("email_confirmed", `${user.email}`, user.id);
 
     // return token
-    return res.json({ success: true, msg: "Email Confirmed" })
+    return res.json({ success: true, message: "Email Confirmed" })
 }
 exports.updatePassword = async function (req, res, next) {
     const user = await User.findById(req.user.id).select('+password');
 
+    if (!user.isEmailVerified) {
+        return next(new ErrorResponse('You must verify your email', 401));
+    }
     // Check current password
     if (!(await user.matchPassword(req.body.currentPassword))) {
         return next(new ErrorResponse('Password is incorrect', 401));
@@ -141,7 +141,7 @@ exports.updatePassword = async function (req, res, next) {
     user.password = req.body.newPassword;
     await user.save();
     Logger.logToDb("password_updated", `${user.email}`, user.id);
-    // sendTokenResponse(user, 200, res);
+    return res.json({ success: true, message: "Password Updated" });
 }
 exports.forgotPassword = async function (req, res, next) {
     const user = await User.findOne({ email: req.body.email });
@@ -169,7 +169,7 @@ exports.forgotPassword = async function (req, res, next) {
             message,
         });
 
-        res.status(200).json({ success: true, data: 'Email sent' });
+        return res.status(200).json({ success: true, data: 'Email sent' });
     } catch (err) {
         console.log(err);
         user.resetPasswordToken = undefined;
@@ -197,14 +197,19 @@ exports.resetPassword = async function (req, res, next) {
     if (!user) {
         return next(new ErrorResponse('Invalid token', 400));
     }
-
     // Set new password
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
+
+    const userData = { id: user.id, role: user.role }
+    const accessToken = jwt.sign(userData,
+        process.env.JWT_ACCESS_SECRET,
+        { expiresIn: process.env.JWT_ACCESS_EXPIRE });
+    const refreshToken = await GenerateRefreshToken(userData);
     await user.save();
     Logger.logToDb("reset_password", `${user.email}`, user.id);
-    // sendTokenResponse(user, 200, res);
+    return res.json({ success: true, message: "Password Successfully Reset.", data: { accessToken, refreshToken } })
 };
 exports.logout = async function (req, res, next) {
     const id = req.user.id;
@@ -216,19 +221,23 @@ exports.logout = async function (req, res, next) {
     // blacklist current access token
     redisClient.set('BL_' + id.toString(), token);
 
-    return res.json({ status: true, message: "success." });
+    return res.json({ success: true, message: "success." });
 }
 exports.GetAccessToken = async function (req, res, next) {
     const access_token = jwt.sign(req.user, process.env.JWT_ACCESS_SECRET, { expiresIn: process.env.JWT_ACCESS_EXPIRE });
     try {
         const refresh_token = await GenerateRefreshToken(req.user);
-        return res.json({ status: true, message: "success", data: { access_token, refresh_token } });
+        return res.json({ success: true, message: "success", data: { access_token, refresh_token } });
 
     } catch (error) {
         return next(new ErrorResponse(error, 400));
     }
 }
-
+// Test Route for getting User Info.
+exports.me = async function (req, res, next) {
+    const user = await User.findById(req.user.id)
+    return res.json(user);
+}
 async function setToken(token, userData) {
     try {
         redisClient.get(userData.id.toString(), (err, data) => {
@@ -246,6 +255,7 @@ async function setToken(token, userData) {
 async function GenerateRefreshToken(userData) {
     try {
         const refresh_token = jwt.sign(userData, process.env.JWT_REFRESH_SECRET, { expiresIn: process.env.JWT_REFRESH_EXPIRE });
+        console.log(refresh_token);
         return await setToken(refresh_token, userData);
     } catch (error) {
         Logger.error(error);

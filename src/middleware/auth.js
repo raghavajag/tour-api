@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
 const ErrorResponse = require('../utils/ErrorResponse');
 const redisClient = require('../utils/connectRedis');
 const Logger = require('../utils/Logger');
@@ -29,15 +28,9 @@ exports.protect = async (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
         req.user = decoded;
         req.token = token;
-        // redisClient.get('BL_' + req.user.id.toString(), (err, data) => {
-        //     if (err) throw err;
-
-        //     if (data === token) return res.status(401).json({ status: false, message: "blacklisted token." });
-        //     next();
-        // })
         try {
             const data = await getToken('BL_' + req.user.id.toString());
-            if (data && data === token) return res.status(401).json({ status: false, message: "blacklisted token." });
+            if (data && data === token) return res.status(401).json({ success: false, message: "blacklisted token." });
         } catch (error) {
             console.log(error);
         }
@@ -49,21 +42,18 @@ exports.protect = async (req, res, next) => {
 
 exports.verifyRefreshToken = async function (req, res, next) {
     const token = req.body.token;
-    if (token === null) return res.status(401).json({ status: false, message: "Invalid request." });
+    if (token === null) return res.status(401).json({ success: false, message: "Invalid request." });
     try {
         const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
         req.user = { id: decoded.id, role: decoded.role };
         let data = await getToken(req.user.id);
         data = JSON.parse(data);
-        // if (data === null) return res.status(401).json({ status: false, message: "Invalid request. Token is not in store." });
-        if (data.token != token) return res.status(401).json({ status: false, message: "Invalid request. Token is not same in store." });
+        if (data.token != token) return res.status(401).json({ success: false, message: "Invalid request. Token is not same in store." });
         next();
     } catch (error) {
-        return res.status(401).json({ status: true, message: "Your session is not valid.", data: error });
+        return res.status(401).json({ success: true, message: "Your session is not valid.", data: error });
     }
 };
-
-
 
 // Grant access to specific roles
 exports.authorize = (...roles) => {
