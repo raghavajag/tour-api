@@ -1,7 +1,17 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const ErrorResponse = require('../utils/ErrorResponse');
+const redisClient = require('../utils/connectRedis');
+const Logger = require('../utils/Logger');
 
+async function getToken(id) {
+    try {
+        return redisClient.get(id.toString())
+
+    } catch (error) {
+        Logger.error(error);
+    }
+}
 // Protect routes
 exports.protect = async (req, res, next) => {
     let token;
@@ -14,17 +24,45 @@ exports.protect = async (req, res, next) => {
     if (!token) {
         return next(new ErrorResponse("Not Authorized", 401));
     }
-
     try {
         // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        req.user = decoded;
+        req.token = token;
+        // redisClient.get('BL_' + req.user.id.toString(), (err, data) => {
+        //     if (err) throw err;
 
-        req.user = await User.findById(decoded.id);
+        //     if (data === token) return res.status(401).json({ status: false, message: "blacklisted token." });
+        //     next();
+        // })
+        try {
+            const data = await getToken('BL_' + req.user.id.toString());
+            if (data && data === token) return res.status(401).json({ status: false, message: "blacklisted token." });
+        } catch (error) {
+            console.log(error);
+        }
         next();
     } catch (err) {
         return next(new ErrorResponse("Not Authorized", 401));
     }
 };
+
+exports.verifyRefreshToken = async function (req, res, next) {
+    const token = req.body.token;
+    if (token === null) return res.status(401).json({ status: false, message: "Invalid request." });
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+        req.user = { id: decoded.id, role: decoded.role };
+        let data = await getToken(req.user.id);
+        data = JSON.parse(data);
+        // if (data === null) return res.status(401).json({ status: false, message: "Invalid request. Token is not in store." });
+        if (data.token != token) return res.status(401).json({ status: false, message: "Invalid request. Token is not same in store." });
+        next();
+    } catch (error) {
+        return res.status(401).json({ status: true, message: "Your session is not valid.", data: error });
+    }
+};
+
 
 
 // Grant access to specific roles

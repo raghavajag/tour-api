@@ -25,7 +25,7 @@ function addApiRoutes(app) {
     });
     app.use(
         asyncHandler(async (req, res, next) => {
-            next(new ErrorResponse("Not Found", 404))
+            return next(new ErrorResponse("Not Found", 404))
         })
     );
 }

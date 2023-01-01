@@ -4,7 +4,12 @@ const Logger = require('../utils/Logger');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
 const crypto = require('crypto');
+const redisClient = require('../utils/connectRedis');
 
+exports.me = async function (req, res, next) {
+    const user = await User.findById(req.user.id)
+    return res.json(user);
+}
 exports.register = async function (req, res, next) {
     let guideRoles = null;
     const { name, email, password, role } = req.body;
@@ -37,23 +42,33 @@ exports.register = async function (req, res, next) {
 
     // Save the user to the database
     try {
-        user.save({ validateBeforeSave: false });
-        await sendEmail({
+        await user.save({ validateBeforeSave: false });
+        sendEmail({
             email: user.email,
             subject: 'Email confirmation token',
             message,
         });
-        Logger.logToDb("user_created", `${name} ${email}`, user.id);
-        return sendTokenResponse(user, 200, res);
+        await Logger.logToDb("user_created", `${name} ${email}`, user._id);
+        let userData = { id: user._id, role: user.role };
+        const accessToken = jwt.sign(userData,
+            process.env.JWT_ACCESS_SECRET,
+            { expiresIn: process.env.JWT_ACCESS_EXPIRE });
+
+        const refreshToken = await GenerateRefreshToken(userData);
+        return res.json({
+            success: true, message: "register success", data: {
+                accessToken,
+                refreshToken
+            }
+        });
     } catch (err) {
-        next(new ErrorResponse(err.message, 400))
+        return next(ErrorResponse(err), 400);
     }
 }
 
-
 exports.login = async function (req, res, next) {
     const { email, password } = req.body;
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select("+password");
     if (!user) {
         Logger.logToDb("invalid_logins", `${user.email}`, user.id);
         return next(new ErrorResponse("Invalid Email/Password", 401));
@@ -67,8 +82,18 @@ exports.login = async function (req, res, next) {
         Logger.logToDb("invalid_password", `${user.email}`, user.id);
         return next(new ErrorResponse("Invalid Password", 401));
     }
-    return sendTokenResponse(user, 200, res);
+    let userData = { id: user._id, role: user.role };
+    const accessToken = jwt.sign(userData,
+        process.env.JWT_ACCESS_SECRET,
+        { expiresIn: process.env.JWT_ACCESS_EXPIRE });
 
+    const refreshToken = await GenerateRefreshToken(userData);
+    return res.json({
+        success: true, message: "login success", data: {
+            accessToken,
+            refreshToken
+        }
+    });
 }
 exports.confirmEmail = async function (req, res, next) {
     // grab token from email
@@ -104,7 +129,7 @@ exports.confirmEmail = async function (req, res, next) {
     Logger.logToDb("email_confirmed", `${user.email}`, user.id);
 
     // return token
-    return sendTokenResponse(user, 200, res);
+    return res.json({ success: true, msg: "Email Confirmed" })
 }
 exports.updatePassword = async function (req, res, next) {
     const user = await User.findById(req.user.id).select('+password');
@@ -116,7 +141,7 @@ exports.updatePassword = async function (req, res, next) {
     user.password = req.body.newPassword;
     await user.save();
     Logger.logToDb("password_updated", `${user.email}`, user.id);
-    sendTokenResponse(user, 200, res);
+    // sendTokenResponse(user, 200, res);
 }
 exports.forgotPassword = async function (req, res, next) {
     const user = await User.findOne({ email: req.body.email });
@@ -179,15 +204,51 @@ exports.resetPassword = async function (req, res, next) {
     user.resetPasswordExpire = undefined;
     await user.save();
     Logger.logToDb("reset_password", `${user.email}`, user.id);
-    sendTokenResponse(user, 200, res);
+    // sendTokenResponse(user, 200, res);
 };
+exports.logout = async function (req, res, next) {
+    const id = req.user.id;
+    const token = req.token;
 
-const sendTokenResponse = (user, statusCode, res) => {
-    // Create token
-    const token = user.getSignedJwtToken();
+    // remove the refresh token
+    redisClient.del(id.toString());
 
-    res.status(statusCode).json({
-        success: true,
-        token,
-    });
-};
+    // blacklist current access token
+    redisClient.set('BL_' + id.toString(), token);
+
+    return res.json({ status: true, message: "success." });
+}
+exports.GetAccessToken = async function (req, res, next) {
+    const access_token = jwt.sign(req.user, process.env.JWT_ACCESS_SECRET, { expiresIn: process.env.JWT_ACCESS_EXPIRE });
+    try {
+        const refresh_token = await GenerateRefreshToken(req.user);
+        return res.json({ status: true, message: "success", data: { access_token, refresh_token } });
+
+    } catch (error) {
+        return next(new ErrorResponse(error, 400));
+    }
+}
+
+async function setToken(token, userData) {
+    try {
+        redisClient.get(userData.id.toString(), (err, data) => {
+            if (err) throw err;
+            redisClient.set(userData.id.toString(), JSON.stringify({ token }));
+        })
+        redisClient.set(userData.id.toString(), JSON.stringify({ token }));
+        Logger.info("Token set successfully");
+        Logger.logToDb("set_refresh_token", "Token set successfully", userData.id);
+        return token;
+    } catch (error) {
+        Logger.error(error);
+    }
+}
+async function GenerateRefreshToken(userData) {
+    try {
+        const refresh_token = jwt.sign(userData, process.env.JWT_REFRESH_SECRET, { expiresIn: process.env.JWT_REFRESH_EXPIRE });
+        return await setToken(refresh_token, userData);
+    } catch (error) {
+        Logger.error(error);
+
+    }
+}
