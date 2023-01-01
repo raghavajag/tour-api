@@ -1,12 +1,12 @@
 const APP_START_TIME = Date.now();
 const asyncHandler = require('../middleware/async');
-const users = require('./user');
+const auth = require('./auth');
 const admin = require('./admin');
 const ErrorResponse = require('../utils/errorResponse');
 
 const API_ROUTE_MAP = {
-    "/users": users,
-    "/admin": admin
+    "/admin": admin,
+    "/auth": auth
 };
 
 function addApiRoutes(app) {

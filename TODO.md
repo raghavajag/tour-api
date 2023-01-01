@@ -5,5 +5,5 @@
 - [x] Auth Middleware to check for token and protect routes. 
 - [x] Routes for Admin to create productKey.
 - [x] Verify Email
-- [ ] Reset Password
+- [x] Reset Password
 - [ ] Use Access and Refresh Tokens
