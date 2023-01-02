@@ -235,7 +235,7 @@ exports.GetAccessToken = async function (req, res, next) {
 }
 // Test Route for getting User Info.
 exports.me = async function (req, res, next) {
-    const user = await User.findById(req.user.id)
+    const user = await User.findById(req.user.id).select("-_id name email role")
     return res.json(user);
 }
 async function setToken(token, userData) {
