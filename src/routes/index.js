@@ -14,8 +14,8 @@ function addApiRoutes(app) {
         "/",
         asyncHandler(async (req, res) => {
             return res.json({
-                msg: "OK",
                 uptime: Date.now() - APP_START_TIME,
+                apiDocs: 'https://documenter.getpostman.com/view/11141903/2s8Z6zzC3Y'
             })
         })
     );
