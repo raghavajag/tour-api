@@ -64,12 +64,14 @@ exports.register = async function (req, res, next) {
 }
 
 exports.login = async function (req, res, next) {
+    console.log(req.body);
     const { email, password } = req.body;
-    const user = await User.findOne({ email }).select("+password");
-    if (!user) {
-        Logger.logToDb("invalid_logins", `${user.email}`, user.id);
+    let user = await User.find({ email }).select("+password");
+    if (!user.length) {
+        Logger.logToDb("invalid_logins", `${email}`, "");
         return next(new ErrorResponse("Invalid Email/Password", 401));
     }
+    user = user[0];
     if (!user.isEmailVerified) {
         Logger.logToDb("verify_email", `${user.email}`, user.id);
         return next(new ErrorResponse("Please Verify your Email", 400));

@@ -80,7 +80,7 @@ const logToDb = async (
     message,
     uid
 ) => {
-    logger.info(`${event}\t${uid}\t${JSON.stringify(message)}`);
+    logger.info(`${event}\t${JSON.stringify(message)}\t${uid}`);
     try {
         await Logs.create({
             timestamp: Date.now(),
