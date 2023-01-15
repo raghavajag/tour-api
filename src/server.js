@@ -5,11 +5,10 @@ const Logger = require('./utils/Logger');
 
 async function bootServer(port) {
     try {
-        Logger.info(`Starting server in ${process.env.MODE} mode`);
+        Logger.info(`Starting server in ${process.env.NODE_ENV} mode`);
         Logger.info(`Connecting to database ${process.env.DB_NAME}...`);
         await connectDB();
         Logger.success("Connected to database");
-
     } catch (error) {
         Logger.error("Failed to boot server");
         Logger.error(error);
@@ -19,5 +18,5 @@ async function bootServer(port) {
         Logger.success(`API server listening on port ${port}`);
     })
 }
-const PORT = parseInt(process.env.PORT ?? "5005", 10);
+const PORT = parseInt(process.env.PORT ?? "5000", 10);
 bootServer(PORT);
