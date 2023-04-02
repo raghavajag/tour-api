@@ -1,8 +1,6 @@
 const ErrorResponse = require('../utils/ErrorResponse');
-const Logger = require('../utils/Logger');
 const errorHandler = (err, req, res, next) => {
     let error = { ...err };
-
     error.message = err.message;
     // Mongoose bad ObjectId
     if (err.name === 'CastError') {
@@ -22,7 +20,6 @@ const errorHandler = (err, req, res, next) => {
         error = new ErrorResponse(message, 400);
     }
     // Log to console for dev
-    Logger.error(error.message)
 
     res.status(error.statusCode || 500).json({
         success: false,

@@ -24,5 +24,4 @@ router.get('/logout', protect, asyncHandler(authController.logout));
 router.get('/me', protect, asyncHandler(authController.me));
 
 
-
 module.exports = router;

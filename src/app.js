@@ -1,4 +1,4 @@
-let express = require('express');
+const express = require('express');
 const addApiRoutes = require('./routes/index');
 const errorHandler = require('./middleware/error');
 const cors = require('cors');

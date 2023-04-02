@@ -9,3 +9,5 @@
 - [x] Use Access and Refresh Tokens
 - [x] Logout Feature and Blacklisting previous Access Tokens
 - [x] Fix bugs and refactor code
+- [x] Designing Touring service models
+- [x] Creating routes for touring service.

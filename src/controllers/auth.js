@@ -1,6 +1,5 @@
 const ErrorResponse = require('../utils/ErrorResponse');
 const User = require('../models/User');
-const Logger = require('../utils/Logger');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
 const crypto = require('crypto');
@@ -13,15 +12,18 @@ exports.register = async function (req, res, next) {
 
     // check if the user provides a product key
     const productKey = req.body.productKey;
+    const userExits = await User.findOne({ email })
+    if (userExits) {
+        return next(new ErrorResponse("Invalid User Credentials"))
+    }
     if (productKey) {
         const decoded = jwt.verify(productKey, process.env.JWT_ACCESS_SECRET);
         if (decoded.email != email) {
-            Logger.logToDb("email_not_matched", `${email} ${decoded.email}[Provided by Admin]`, "")
             return next(new ErrorResponse("Email does not match", 400));
         }
         guideRoles = decoded.role;
-
     }
+
     // Create user
     const user = await User.create({
         name,
@@ -45,7 +47,6 @@ exports.register = async function (req, res, next) {
             subject: 'Email confirmation token',
             message,
         });
-        await Logger.logToDb("user_created", `${name} ${email}`, user._id);
         let userData = { id: user._id, role: user.role };
         const accessToken = jwt.sign(userData,
             process.env.JWT_ACCESS_SECRET,
@@ -64,21 +65,20 @@ exports.register = async function (req, res, next) {
 }
 
 exports.login = async function (req, res, next) {
-    console.log(req.body);
     const { email, password } = req.body;
     let user = await User.find({ email }).select("+password");
     if (!user.length) {
-        Logger.logToDb("invalid_logins", `${email}`, "");
+
         return next(new ErrorResponse("Invalid Email/Password", 401));
     }
     user = user[0];
     if (!user.isEmailVerified) {
-        Logger.logToDb("verify_email", `${user.email}`, user.id);
+
         return next(new ErrorResponse("Please Verify your Email", 400));
     }
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-        Logger.logToDb("invalid_password", `${user.email}`, user.id);
+
         return next(new ErrorResponse("Invalid Password", 401));
     }
     let userData = { id: user._id, role: user.role };
@@ -125,7 +125,7 @@ exports.confirmEmail = async function (req, res, next) {
     // save
     user.save({ validateBeforeSave: false });
 
-    Logger.logToDb("email_confirmed", `${user.email}`, user.id);
+
 
     // return token
     return res.json({ success: true, message: "Email Confirmed" })
@@ -142,7 +142,7 @@ exports.updatePassword = async function (req, res, next) {
     }
     user.password = req.body.newPassword;
     await user.save();
-    Logger.logToDb("password_updated", `${user.email}`, user.id);
+
     return res.json({ success: true, message: "Password Updated" });
 }
 exports.forgotPassword = async function (req, res, next) {
@@ -210,7 +210,7 @@ exports.resetPassword = async function (req, res, next) {
         { expiresIn: process.env.JWT_ACCESS_EXPIRE });
     const refreshToken = await GenerateRefreshToken(userData);
     await user.save();
-    Logger.logToDb("reset_password", `${user.email}`, user.id);
+
     return res.json({ success: true, message: "Password Successfully Reset.", data: { accessToken, refreshToken } })
 };
 exports.logout = async function (req, res, next) {
@@ -247,11 +247,11 @@ async function setToken(token, userData) {
             redisClient.set(userData.id.toString(), JSON.stringify({ token }));
         })
         redisClient.set(userData.id.toString(), JSON.stringify({ token }));
-        Logger.info("Token set successfully");
-        Logger.logToDb("set_refresh_token", "Token set successfully", userData.id);
+
+
         return token;
     } catch (error) {
-        Logger.error(error);
+
     }
 }
 async function GenerateRefreshToken(userData) {
@@ -260,7 +260,7 @@ async function GenerateRefreshToken(userData) {
         console.log(refresh_token);
         return await setToken(refresh_token, userData);
     } catch (error) {
-        Logger.error(error);
+
 
     }
 }

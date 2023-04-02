@@ -1,14 +1,13 @@
 const jwt = require('jsonwebtoken');
 const ErrorResponse = require('../utils/ErrorResponse');
 const redisClient = require('../utils/connectRedis');
-const Logger = require('../utils/Logger');
 
 async function getToken(id) {
     try {
         return redisClient.get(id.toString())
 
     } catch (error) {
-        Logger.error(error);
+        console.log(error);
     }
 }
 // Protect routes
