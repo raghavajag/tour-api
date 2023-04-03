@@ -1,4 +1,5 @@
 const Joi = require('joi')
+Joi.objectId = require('joi-objectid')(Joi)
 
 const createTourSchema = Joi.object({
     name: Joi.string().required(),
@@ -27,8 +28,39 @@ const createTourSchema = Joi.object({
     ),
     guides: Joi.array().items(Joi.string()),
 });
+const updateTourSchema = Joi.object({
+    name: Joi.string().empty(),
+    description: Joi.string().empty(),
+    price: Joi.number().min(0),
+    duration: Joi.number().min(1),
+    maxGroupSize: Joi.number().min(1),
+    ratingsAverage: Joi.number().min(0).max(5),
+    ratingsQuantity: Joi.number().min(0),
+    images: Joi.array().items(Joi.string().uri()),
+    startDates: Joi.array().items(Joi.date()),
+    startLocation: Joi.object({
+        type: Joi.string().required(),
+        coordinates: Joi.array().items(Joi.number()).length(2).required(),
+        address: Joi.string().empty().required(),
+        description: Joi.string().empty(),
+    }),
+    locations: Joi.array().items(
+        Joi.object({
+            type: Joi.string().required(),
+            coordinates: Joi.array().items(Joi.number()).length(2).required(),
+            address: Joi.string().empty().required(),
+            description: Joi.string().empty(),
+            day: Joi.number().min(1).required(),
+        })
+    ),
+    guides: Joi.array().items(Joi.string().hex().length(24)),
+    creator: Joi.string().hex().length(24),
+});
 
+const tourIdSchema = Joi.object({
+    tourId: Joi.objectId().required()
+});
 
 module.exports = {
-    createTourSchema
+    createTourSchema, tourIdSchema, updateTourSchema
 }
