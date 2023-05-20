@@ -1,8 +1,9 @@
-class ErrorResponse extends Error {
-    constructor(message, statusCode) {
-        super(message);
+class ErrorResponse {
+    constructor(message, statusCode = 500, field = null, errors = []) {
+        this.message = message;
         this.statusCode = statusCode;
-        Error.captureStackTrace(this, this.constructor);
+        this.field = field;
+        this.errors = Array.isArray(errors) ? errors : [errors];
     }
 }
 

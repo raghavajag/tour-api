@@ -20,10 +20,11 @@ const errorHandler = (err, req, res, next) => {
         error = new ErrorResponse(message, 400);
     }
     // Log to console for dev
-
-    res.status(error.statusCode || 500).json({
+    return res.status(error.statusCode || 500).json({
         success: false,
-        error: error.message || 'Server Error'
+        errors: error.errors.length
+            ? error.errors
+            : [{ field: error.field, message: error.message }],
     });
 };
 
