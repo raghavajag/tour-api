@@ -61,17 +61,17 @@ const tourSchema = new mongoose.Schema({
     guides: [
         {
             type: mongoose.Schema.ObjectId,
-            ref: 'User',
+            ref: 'Users',
         },
     ],
     creator: {
         type: mongoose.Schema.ObjectId,
-        ref: "User"
+        ref: "Users"
     }
 });
 
 tourSchema.index({ startLocation: '2dsphere' });
 
-const Tour = mongoose.model('Tour', tourSchema);
+const Tour = mongoose.model('Tours', tourSchema);
 
 module.exports = Tour;

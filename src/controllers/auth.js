@@ -60,7 +60,8 @@ exports.register = async function (req, res, next) {
             }
         });
     } catch (err) {
-        return next(ErrorResponse(err), 400);
+        console.log(err);
+        return next(ErrorResponse(err.message), 400);
     }
 }
 
